@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musical Chairs Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        table { width: 80%; margin: auto; border-collapse: collapse; }
+        th, td { padding: 10px; border: 1px solid black; }
+        th { background-color: #f2f2f2; }
+        button { font-size: 18px; padding: 10px 20px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Musical Chairs Admin</h1>
+    <form action="/admin/start_game" method="POST">
+        <button type="submit">Start Game</button>
+    </form>
+    <form action="/admin/stop_game" method="POST">
+        <button type="submit">Stop Game</button>
+    </form>
+    <h2>Players</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Player ID</th>
+                <th>Seated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player_id, player in players.items() %}
+            <tr>
+                <td>{{ player_id }}</td>
+                <td>{{ 'Yes' if player.seated else 'No' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <h2>Game State</h2>
+    <p>Is Playing: {{ 'Yes' if game_state.is_playing else 'No' }}</p>
+    <p>Round Start Time: {{ game_state.round_start_time }}</p>
+    <p>Round Duration: {{ game_state.round_duration }} seconds</p>
+    <p>Seated Players: {{ game_state.seated_players }}</p>
+</body>
+</html>

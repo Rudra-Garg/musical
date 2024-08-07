@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musical Chairs</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #sitButton { font-size: 24px; padding: 10px 20px; display: none; }
+    </style>
+</head>
+<body>
+    <h1>Musical Chairs</h1>
+    <p id="playerCount">Players: 0</p>
+    <button id="startButton">Start Game</button>
+    <button id="sitButton">Sit!</button>
+    <p id="status"></p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let myId;
+        let audioContext;
+        let audioSource;
+
+        const playerCountEl = document.getElementById('playerCount');
+        const startButton = document.getElementById('startButton');
+        const sitButton = document.getElementById('sitButton');
+        const statusEl = document.getElementById('status');
+
+        startButton.addEventListener('click', () => socket.emit('start_game'));
+        sitButton.addEventListener('click', () => {
+            socket.emit('player_seated');
+            sitButton.style.display = 'none';
+        });
+
+        socket.on('connect', () => {
+            statusEl.textContent = 'Connected to server';
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        });
+
+        socket.on('player_connected', (data) => {
+            myId = data.id;
+            playerCountEl.textContent = `Players: ${data.player_count}`;
+        });
+
+        socket.on('player_disconnected', (data) => {
+            playerCountEl.textContent = `Players: ${data.player_count}`;
+        });
+
+        socket.on('game_started', (data) => {
+            statusEl.textContent = 'Game started! Music playing...';
+            startButton.style.display = 'none';
+            sitButton.style.display = 'none';
+            playMusic(data.start_time, data.duration);
+        });
+
+        socket.on('game_stopped', () => {
+            statusEl.textContent = 'Game stopped by admin.';
+            startButton.style.display = 'inline';
+            sitButton.style.display = 'none';
+            if (audioSource) {
+                audioSource.stop();
+            }
+        });
+
+        socket.on('player_seated', (data) => {
+            if (data.id === myId) {
+                statusEl.textContent = 'You got a seat!';
+                sitButton.style.display = 'none';
+            }
+        });
+
+        socket.on('round_ended', (data) => {
+            if (data.eliminated === myId) {
+                statusEl.textContent = 'You were eliminated!';
+            } else {
+                statusEl.textContent = 'Round ended. Waiting for next round...';
+            }
+            startButton.style.display = 'inline';
+        });
+
+        function playMusic(startTime, duration) {
+            const serverNow = startTime * 1000;
+            const clientNow = Date.now();
+            const lag = clientNow - serverNow;
+            audioSource = audioContext.createOscillator();
+            audioSource.type = 'sine';
+            audioSource.frequency.setValueAtTime(440, audioContext.currentTime);
+            audioSource.connect(audioContext.destination);
+            audioSource.start();
+            audioSource.stop(audioContext.currentTime + duration - lag / 1000);
+
+            setTimeout(() => {
+                statusEl.textContent = 'Music stopped! Quick, take a seat!';
+                sitButton.style.display = 'inline';
+            }, (duration * 1000) - lag);
+        }
+    </script>
+</body>
+</html>
